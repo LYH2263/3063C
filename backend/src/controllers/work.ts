@@ -51,15 +51,19 @@ export const getWorkDetail = async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return apiResponse(res, 400, 'Invalid ID');
 
-    const work = await prisma.work.update({
-        where: { id, status: 'PUBLISHED' },
-        data: { viewCount: { increment: 1 } },
-        include: { interactions: true }
-    });
-
-    if (!work) return apiResponse(res, 404, 'Work not found');
-
-    return apiResponse(res, 200, 'Success', work);
+    try {
+        const work = await prisma.work.update({
+            where: { id, status: 'PUBLISHED' },
+            data: { viewCount: { increment: 1 } },
+            include: { interactions: true }
+        });
+        return apiResponse(res, 200, 'Success', work);
+    } catch (err: any) {
+        if (err.code === 'P2025') {
+            return apiResponse(res, 404, 'Work not found');
+        }
+        throw err;
+    }
 };
 
 // User: Interact (Like / Favorite)

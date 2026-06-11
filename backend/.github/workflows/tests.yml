@@ -1,0 +1,87 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'backend/**'
+  workflow_dispatch:
+
+jobs:
+  integration-tests:
+    name: Work Lifecycle Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: portfolio_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Wait for MySQL
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -u root -ppassword --silent; then
+              echo "MySQL is ready"
+              break
+            fi
+            echo "Waiting for MySQL... attempt $i"
+            sleep 2
+          done
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: mysql://root:password@localhost:3306/portfolio_test
+
+      - name: Run database migrations
+        run: npx prisma db push
+        env:
+          DATABASE_URL: mysql://root:password@localhost:3306/portfolio_test
+
+      - name: Run integration tests
+        run: npm run test:ci
+        env:
+          NODE_ENV: test
+          DATABASE_URL: mysql://root:password@localhost:3306/portfolio_test
+          JWT_SECRET: test_jwt_secret_key_for_ci_1234567890
+          PORT: 8064
+          JEST_JUNIT_OUTPUT_DIR: ./
+          JEST_JUNIT_OUTPUT_NAME: test-results.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: backend/test-results.xml

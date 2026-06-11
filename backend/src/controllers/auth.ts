@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import { apiResponse } from '../middleware/error';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../lib/prisma';
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey_12345';
+import config from '../config';
 
 export const login = async (req: Request, res: Response) => {
     const { username, password } = req.body;
@@ -30,7 +30,7 @@ export const login = async (req: Request, res: Response) => {
 
     const token = jwt.sign(
         { userId: user.id, username: user.username, roleType: user.roleType },
-        JWT_SECRET,
+        config.JWT_SECRET,
         { expiresIn: '7d' }
     );
 

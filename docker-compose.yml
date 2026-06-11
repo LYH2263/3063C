@@ -27,9 +27,16 @@ services:
       - DATABASE_URL=mysql://root:root@db:3306/indiesite
       - JWT_SECRET=supersecretjwtkey_12345
       - PORT=8063
+      - NODE_ENV=production
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8063/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   frontend:
     build:
@@ -39,7 +46,14 @@ services:
     ports:
       - "3063:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   mysql_data:

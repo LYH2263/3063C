@@ -4,8 +4,9 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Heart, ArrowLeft, Eye, Star } from 'lucide-react';
+import { getApiRoot } from '../../config';
 
-const API_ROOT = (import.meta.env.VITE_API_URL || 'http://localhost:8063/api').replace(/\/api$/, '');
+const API_ROOT = getApiRoot();
 
 export const WorkDetail = () => {
     const { id } = useParams();

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
+import { isDevelopment } from '../config';
 
 export const apiResponse = (res: Response, code: number, message: string, data: any = null) => {
     return res.status(code).json({
@@ -104,7 +105,7 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
         res,
         statusCode,
         message,
-        process.env.NODE_ENV === 'development' ? (err.stack ?? null) : null
+        isDevelopment() ? (err.stack ?? null) : null
     );
 };
 

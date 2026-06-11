@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { apiResponse } from './error';
 import { isAdminRole } from '../utils/role';
+import config from '../config';
 
 export interface AuthRequest extends Request {
     user?: {
@@ -10,8 +11,6 @@ export interface AuthRequest extends Request {
         roleType: string;
     };
 }
-
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey_12345';
 
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
@@ -23,7 +22,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     const token = authHeader.split(' ')[1];
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        const decoded = jwt.verify(token, config.JWT_SECRET) as any;
         req.user = {
             userId: decoded.userId,
             username: decoded.username,

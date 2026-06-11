@@ -1,7 +1,7 @@
 import axios from 'axios';
+import { getApiBaseUrl } from '../config';
 
-// The container URL would normally be used by SSR, but for client side, we use the mapped port.
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8063/api';
+const baseURL = getApiBaseUrl();
 
 const api = axios.create({
     baseURL,

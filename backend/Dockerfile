@@ -1,5 +1,5 @@
 FROM node:20-slim
-RUN apt-get update && apt-get install -y openssl
+RUN apt-get update && apt-get install -y openssl curl
 WORKDIR /app
 
 COPY package*.json ./

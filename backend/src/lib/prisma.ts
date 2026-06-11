@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { isDevelopment, isProduction } from '../config';
 
 declare global {
     // eslint-disable-next-line no-var
@@ -7,7 +8,7 @@ declare global {
 
 const createPrismaClient = (): PrismaClient => {
     const client = new PrismaClient({
-        log: process.env.NODE_ENV === 'development'
+        log: isDevelopment()
             ? ['error', 'warn']
             : ['error'],
     });
@@ -21,7 +22,7 @@ const createPrismaClient = (): PrismaClient => {
 
 const prisma: PrismaClient = globalThis.__prisma__ ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== 'production') {
+if (!isProduction()) {
     globalThis.__prisma__ = prisma;
 }
 

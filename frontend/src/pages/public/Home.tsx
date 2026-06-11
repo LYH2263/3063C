@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { Button } from '../../components/ui/Button';
+import { getApiRoot } from '../../config';
 
-const API_ROOT = (import.meta.env.VITE_API_URL || 'http://localhost:8063/api').replace(/\/api$/, '');
+const API_ROOT = getApiRoot();
 
 export const Home = () => {
     const [featuredWorks, setFeaturedWorks] = useState<any[]>([]);

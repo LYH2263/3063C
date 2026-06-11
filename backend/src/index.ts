@@ -1,10 +1,11 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import path from 'path';
 
 import { errorHandler } from './middleware/error';
 import { shutdownPrisma } from './lib/prisma';
+import prisma from './lib/prisma';
+import config from './config';
 import authRoutes from './routes/auth';
 import styleRoutes from './routes/style';
 import workRoutes from './routes/work';
@@ -13,10 +14,40 @@ import adminRoutes from './routes/admin';
 import uploadRoutes from './routes/upload';
 import settingsRoutes from './routes/settings';
 
-dotenv.config();
-
 const app = express();
-const port = process.env.PORT || 8063;
+const port = config.PORT;
+
+app.get('/health', async (req, res) => {
+    const startTime = Date.now();
+    let dbStatus = 'unknown';
+    let dbLatency = 0;
+
+    try {
+        const dbStart = Date.now();
+        await prisma.$queryRaw`SELECT 1`;
+        dbLatency = Date.now() - dbStart;
+        dbStatus = 'healthy';
+    } catch (err) {
+        dbStatus = 'unhealthy';
+    }
+
+    const overallStatus = dbStatus === 'healthy' ? 'healthy' : 'degraded';
+    const statusCode = overallStatus === 'healthy' ? 200 : 503;
+
+    res.status(statusCode).json({
+        status: overallStatus,
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: config.NODE_ENV,
+        services: {
+            database: {
+                status: dbStatus,
+                latencyMs: dbLatency,
+            },
+        },
+        responseTimeMs: Date.now() - startTime,
+    });
+});
 
 app.use(cors());
 app.use(express.json());

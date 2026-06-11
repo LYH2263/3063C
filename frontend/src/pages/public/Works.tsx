@@ -4,8 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { Heart, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getApiRoot } from '../../config';
 
-const API_ROOT = (import.meta.env.VITE_API_URL || 'http://localhost:8063/api').replace(/\/api$/, '');
+const API_ROOT = getApiRoot();
 
 export const Works = () => {
     const [works, setWorks] = useState<any[]>([]);

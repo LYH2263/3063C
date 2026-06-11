@@ -5,8 +5,9 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { Trash2, Edit, Plus, Eye } from 'lucide-react';
+import { getApiRoot } from '../../config';
 
-const API_ROOT = (import.meta.env.VITE_API_URL || 'http://localhost:8063/api').replace(/\/api$/, '');
+const API_ROOT = getApiRoot();
 
 export const AdminWorks = () => {
     const [works, setWorks] = useState<any[]>([]);

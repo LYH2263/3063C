@@ -107,16 +107,41 @@ export const AdminWorks = () => {
         }
     };
 
+    interface BatchResponseData {
+        success: number[];
+        failed: Array<{ id: number; reason: string }>;
+    }
+
+    const buildBatchFailureMessage = (failed: Array<{ id: number; reason: string }>, actionLabel: string) => {
+        const preview = failed.slice(0, 3).map(f => `#${f.id}（${f.reason}）`).join('；');
+        const more = failed.length > 3 ? ` 等 ${failed.length} 条` : '';
+        return `${actionLabel}部分失败：${preview}${more}`;
+    };
+
     const handleBatchDelete = async () => {
         if (selectedIds.length === 0) return;
         if (!window.confirm(`确定要删除选中的 ${selectedIds.length} 个作品吗？`)) return;
         try {
-            await Promise.all(selectedIds.map(id => api.delete(`/works/admin/${id}`)));
-            success('批量删除成功');
-            setSelectedIds([]);
-            fetchWorks();
+            const res: any = await api.post('/works/admin/batch/delete', { ids: selectedIds });
+            const data = (res?.data || res) as BatchResponseData;
+
+            const { success: successIds, failed } = data;
+
+            if (successIds && successIds.length > 0) {
+                setWorks(prev => prev.filter(w => !successIds.includes(w.id)));
+            }
+            const failedIds = (failed || []).map(f => f.id);
+            setSelectedIds(prev => prev.filter(id => failedIds.includes(id)));
+
+            if (!failed || failed.length === 0) {
+                success(`批量删除成功，共 ${successIds.length} 条`);
+            } else {
+                success(`删除成功 ${successIds.length} 条`);
+                error(buildBatchFailureMessage(failed, '删除'));
+            }
         } catch (err: any) {
-            error('批量删除过程中出现错误');
+            error(err.message || '批量删除过程中出现错误');
+            fetchWorks();
         }
     };
 
@@ -126,19 +151,28 @@ export const AdminWorks = () => {
         if (!window.confirm(`确定要${confirmMsg}选中的 ${selectedIds.length} 个作品吗？`)) return;
 
         try {
-            // we have put /works/admin/:id, we need to fetch the existing data or just patch it
-            // since put replaces everything, we need to get each first or let's use the current works data
-            const updates = selectedIds.map(id => {
-                const work = works.find(w => w.id === id);
-                if (!work) return Promise.resolve();
-                return api.put(`/works/admin/${id}`, { ...work, status });
-            });
-            await Promise.all(updates);
-            success(`${confirmMsg}成功`);
-            setSelectedIds([]);
+            const res: any = await api.put('/works/admin/batch/status', { ids: selectedIds, status });
+            const data = (res?.data || res) as BatchResponseData;
+
+            const { success: successIds, failed } = data;
+
+            if (successIds && successIds.length > 0) {
+                setWorks(prev => prev.map(w =>
+                    successIds.includes(w.id) ? { ...w, status } : w
+                ));
+            }
+            const failedIds = (failed || []).map(f => f.id);
+            setSelectedIds(prev => prev.filter(id => failedIds.includes(id)));
+
+            if (!failed || failed.length === 0) {
+                success(`${confirmMsg}成功，共 ${successIds.length} 条`);
+            } else {
+                success(`${confirmMsg.replace('批量', '')}成功 ${successIds.length} 条`);
+                error(buildBatchFailureMessage(failed, confirmMsg));
+            }
+        } catch (err: any) {
+            error(err.message || '批量操作过程中出现错误');
             fetchWorks();
-        } catch (err) {
-            error('批量操作过程中出现错误');
         }
     };
 

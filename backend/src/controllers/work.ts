@@ -160,3 +160,92 @@ export const adminDeleteWork = async (req: Request, res: Response) => {
     await prisma.work.delete({ where: { id } });
     return apiResponse(res, 200, 'Work deleted');
 };
+
+interface BatchResult {
+    success: number[];
+    failed: Array<{ id: number; reason: string }>;
+}
+
+const BATCH_CHUNK_SIZE = 100;
+
+const normalizeIds = (rawIds: any): number[] => {
+    if (!Array.isArray(rawIds)) return [];
+    return rawIds
+        .map((id: any) => (typeof id === 'number' ? id : parseInt(id)))
+        .filter((id: number) => !isNaN(id) && id > 0);
+};
+
+export const adminBatchUpdateWorkStatus = async (req: Request, res: Response) => {
+    const { ids: rawIds, status } = req.body;
+    const ids = normalizeIds(rawIds);
+
+    if (ids.length === 0) {
+        return apiResponse(res, 400, 'Invalid or empty ids array');
+    }
+    if (status !== 'PUBLISHED' && status !== 'DRAFT') {
+        return apiResponse(res, 400, 'Invalid status, must be PUBLISHED or DRAFT');
+    }
+
+    const result: BatchResult = { success: [], failed: [] };
+
+    for (let i = 0; i < ids.length; i += BATCH_CHUNK_SIZE) {
+        const chunk = ids.slice(i, i + BATCH_CHUNK_SIZE);
+        for (const id of chunk) {
+            try {
+                await prisma.work.update({
+                    where: { id },
+                    data: { status: status as 'PUBLISHED' | 'DRAFT' }
+                });
+                result.success.push(id);
+            } catch (err: any) {
+                result.failed.push({
+                    id,
+                    reason: err.code === 'P2025' ? '作品不存在' : err.message || '未知错误'
+                });
+            }
+        }
+    }
+
+    const allOk = result.failed.length === 0;
+    const message = allOk
+        ? `批量${status === 'PUBLISHED' ? '上架' : '下架'}成功，共 ${result.success.length} 条`
+        : `批量操作完成：成功 ${result.success.length} 条，失败 ${result.failed.length} 条`;
+
+    return apiResponse(res, 200, message, result);
+};
+
+export const adminBatchDeleteWorks = async (req: Request, res: Response) => {
+    const { ids: rawIds } = req.body;
+    const ids = normalizeIds(rawIds);
+
+    if (ids.length === 0) {
+        return apiResponse(res, 400, 'Invalid or empty ids array');
+    }
+
+    const result: BatchResult = { success: [], failed: [] };
+
+    for (let i = 0; i < ids.length; i += BATCH_CHUNK_SIZE) {
+        const chunk = ids.slice(i, i + BATCH_CHUNK_SIZE);
+        for (const id of chunk) {
+            try {
+                await prisma.$transaction(async (tx) => {
+                    await tx.interaction.deleteMany({ where: { workId: id } });
+                    await tx.work.delete({ where: { id } });
+                });
+                result.success.push(id);
+            } catch (err: any) {
+                result.failed.push({
+                    id,
+                    reason: err.code === 'P2025' ? '作品不存在' : err.message || '未知错误'
+                });
+            }
+        }
+    }
+
+    const allOk = result.failed.length === 0;
+    const message = allOk
+        ? `批量删除成功，共 ${result.success.length} 条`
+        : `批量删除完成：成功 ${result.success.length} 条，失败 ${result.failed.length} 条`;
+
+    return apiResponse(res, 200, message, result);
+};

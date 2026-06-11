@@ -1,0 +1,120 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleType {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
+enum Status {
+  ACTIVE
+  BANNED
+}
+
+enum WorkStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum MessageStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LayoutMode {
+  SINGLE
+  DUAL
+}
+
+model User {
+  id            Int             @id @default(autoincrement())
+  username      String          @unique
+  passwordHash  String
+  roleType      RoleType        @default(USER)
+  permissions   String?         // Allowed string like "STYLE,WORK,USER,MESSAGE,SETTING"
+  status        Status          @default(ACTIVE)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  interactions  Interaction[]
+  messages      Message[]
+  operationLogs OperationLog[]
+}
+
+model Work {
+  id           Int           @id @default(autoincrement())
+  title        String
+  description  String        @db.Text
+  tags         String        // JSON array fallback
+  category     String
+  mediaUrl     String
+  status       WorkStatus    @default(PUBLISHED)
+  viewCount    Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  interactions Interaction[]
+}
+
+model Interaction {
+  id               Int      @id @default(autoincrement())
+  user             User     @relation(fields: [userId], references: [id])
+  userId           Int
+  work             Work     @relation(fields: [workId], references: [id])
+  workId           Int
+  interactionType  String   // LIKE | FAVORITE
+  createdAt        DateTime @default(now())
+  
+  @@unique([userId, workId, interactionType])
+}
+
+model StyleConfig {
+  id              Int        @id @default(autoincrement())
+  name            String
+  primaryColor    String
+  fontFamily      String
+  layoutMode      LayoutMode @default(SINGLE)
+  backgroundImage String?
+  isActive        Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Message {
+  id        Int           @id @default(autoincrement())
+  user      User          @relation(fields: [userId], references: [id])
+  userId    Int
+  content   String        @db.Text
+  status    MessageStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model SystemSetting {
+  id                Int      @id @default(autoincrement())
+  siteTitle         String   @default("My Website")
+  logoUrl           String?
+  contactInfo       String?
+  icpInfo           String?
+  enableMessageReview Boolean @default(true)
+  enableWorkReview  Boolean  @default(false)
+  enableRegistration Boolean @default(true)
+  updatedAt         DateTime @updatedAt
+}
+
+model OperationLog {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  action    String
+  detail    String?  @db.Text
+  ip        String?
+  createdAt DateTime @default(now())
+}

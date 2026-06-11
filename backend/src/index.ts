@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 import { errorHandler } from './middleware/error';
+import { shutdownPrisma } from './lib/prisma';
 import authRoutes from './routes/auth';
 import styleRoutes from './routes/style';
 import workRoutes from './routes/work';
@@ -20,10 +21,8 @@ const port = process.env.PORT || 8063;
 app.use(cors());
 app.use(express.json());
 
-// Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/styles', styleRoutes);
 app.use('/api/works', workRoutes);
@@ -36,9 +35,35 @@ app.get('/', (req, res) => {
     res.send('API is running successfully!');
 });
 
-// Global error handler
 app.use(errorHandler as express.ErrorRequestHandler);
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
+});
+
+const gracefulShutdown = async (signal: string) => {
+    console.log(`[Shutdown] Received ${signal}, starting graceful shutdown...`);
+    server.close(async () => {
+        console.log('[Shutdown] HTTP server closed');
+        await shutdownPrisma();
+        console.log('[Shutdown] Graceful shutdown completed');
+        process.exit(0);
+    });
+
+    setTimeout(() => {
+        console.error('[Shutdown] Force shutdown after timeout');
+        process.exit(1);
+    }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+process.on('uncaughtException', (err) => {
+    console.error('[Uncaught Exception]:', err);
+    gracefulShutdown('uncaughtException');
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error('[Unhandled Rejection]:', reason);
 });

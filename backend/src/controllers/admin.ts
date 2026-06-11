@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { apiResponse } from '../middleware/error';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 // Get all users
 export const adminGetUsers = async (req: Request, res: Response) => {

@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from './auth';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 export const logOperation = (actionName: string) => {
     return async (req: AuthRequest, res: Response, next: NextFunction) => {

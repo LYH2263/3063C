@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { apiResponse } from '../middleware/error';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 // Get the currently active style (public)
 export const getActiveStyle = async (req: Request, res: Response) => {

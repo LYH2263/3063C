@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
 import { apiResponse } from '../middleware/error';
 import { AuthRequest } from '../middleware/auth';
-
-const prisma = new PrismaClient();
+import prisma from '../lib/prisma';
 
 const normalizeWorkPayload = (body: any) => {
     const readTrimmed = (value: any) => (typeof value === 'string' ? value.trim() : undefined);

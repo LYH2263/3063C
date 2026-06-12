@@ -610,7 +610,7 @@ describe('Work Lifecycle Integration Tests', () => {
           category: 'Test',
         });
       expect(createRes.status).toBe(201);
-      const workId = createRes.data.id;
+      const workId = createRes.body.data.id;
 
       await request(app).get(`/api/works/${workId}`);
       await request(app).get(`/api/works/${workId}`);
@@ -638,8 +638,8 @@ describe('Work Lifecycle Integration Tests', () => {
 
       const listRes = await request(app).get('/api/works?search=Lifecycle');
       expect(listRes.status).toBe(200);
-      expect(listRes.data.works).toHaveLength(1);
-      expect(listRes.data.works[0].title).toBe('Lifecycle Test');
+      expect(listRes.body.data.works).toHaveLength(1);
+      expect(listRes.body.data.works[0].title).toBe('Lifecycle Test');
 
       const deleteRes = await request(app)
         .delete(`/api/works/admin/${workId}`)
@@ -647,7 +647,7 @@ describe('Work Lifecycle Integration Tests', () => {
       expect(deleteRes.status).toBe(200);
 
       const afterDeleteList = await request(app).get('/api/works?search=Lifecycle');
-      expect(afterDeleteList.data.works).toHaveLength(0);
+      expect(afterDeleteList.body.data.works).toHaveLength(0);
 
       const afterDeleteInteractions = await prisma.interaction.count({
         where: { workId },

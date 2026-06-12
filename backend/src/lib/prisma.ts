@@ -13,7 +13,9 @@ const createPrismaClient = (): PrismaClient => {
             : ['error'],
     });
 
-    client.$on('beforeExit' as never, async () => {
+    // Prisma 5 removed the client-level 'beforeExit' hook for the library engine.
+    // Attach the listener to the Node process instead.
+    process.on('beforeExit', async () => {
         console.log('[Prisma] Connection pool is shutting down...');
     });
 

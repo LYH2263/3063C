@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { WorkStatus } from '@prisma/client';
 import { apiResponse } from '../middleware/error';
 import { AuthRequest } from '../middleware/auth';
 import prisma from '../lib/prisma';
@@ -10,8 +11,8 @@ const normalizeWorkPayload = (body: any) => {
     const mediaUrl = readTrimmed(body?.mediaUrl ?? body?.url ?? body?.coverUrl);
     const category = readTrimmed(body?.category);
     const tags = readTrimmed(body?.tags);
-    const status = typeof body?.status === 'string'
-        ? (body.status === 'DRAFT' ? 'DRAFT' : 'PUBLISHED')
+    const status: WorkStatus | undefined = typeof body?.status === 'string'
+        ? (body.status === 'DRAFT' ? WorkStatus.DRAFT : WorkStatus.PUBLISHED)
         : undefined;
 
     return { title, description, mediaUrl, category, tags, status };
@@ -125,7 +126,7 @@ export const adminCreateWork = async (req: Request, res: Response) => {
             tags: tags || '[]',
             category: category || 'Uncategorized',
             mediaUrl,
-            status: status || 'PUBLISHED'
+            status: status ?? WorkStatus.PUBLISHED
         }
     });
     return apiResponse(res, 201, 'Work created', work);
